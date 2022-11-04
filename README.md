@@ -60,6 +60,8 @@ Several example profiles are included below. Run the corresponding command snipp
 - `mainstall MonumentLifts` -- Adds car lifts to gas station and supermarket (same as the MonumentLifts plugin).
 - `mainstall MonumentsRecycler` -- Adds recyclers to Cargo Ship, Oilrigs, Dome and Fishing Villages (same as the MonumentsRecycler plugin).
 - `mainstall TrainStationCCTV` -- Adds 6 CCTVs and one computer station to each underground Train Station.
+- `mainstall CargoShipCCTV` -- Adds 7 CCTVs and one computer station to cargo ship (same as the Cargo Ship CCTV plugin).
+- `mainstall OilRigSharks` -- Adds one shark to small rig and two sharks to lage rig.
 
 These example profiles are installed from https://github.com/WheteThunger/MonumentAddons/blob/master/Profiles/.
 Don't see what you're looking for? Want to showcase a profile you created? Fork the repository on [GitHub](https://github.com/WheteThunger/MonumentAddons), commit the changes, and submit a pull request!
@@ -173,9 +175,11 @@ Profiles allow you to organize entities into groups. Each profile can be indepen
 ```json
 {
   "DebugDisplayDistance": 150.0,
+  "PersistEntitiesAfterUnload": false,
   "DeployableOverrides": {
     "arcade.machine.chippy": "assets/bundled/prefabs/static/chippyarcademachine.static.prefab",
     "autoturret": "assets/content/props/sentry_scientists/sentry.bandit.static.prefab",
+    "bbq": "assets/bundled/prefabs/static/bbq.static.prefab",
     "boombox": "assets/prefabs/voiceaudio/boombox/boombox.static.prefab",
     "box.repair.bench": "assets/bundled/prefabs/static/repairbench_static.prefab",
     "cctv.camera": "assets/prefabs/deployable/cctvcamera/cctv.static.prefab",
@@ -187,20 +191,18 @@ Profiles allow you to organize entities into groups. Each profile can be indepen
     "modularcarlift": "assets/bundled/prefabs/static/modularcarlift.static.prefab",
     "research.table": "assets/bundled/prefabs/static/researchtable_static.prefab",
     "samsite": "assets/prefabs/npc/sam_site_turret/sam_static.prefab",
+    "small.oil.refinery": "assets/bundled/prefabs/static/small_refinery_static.prefab",
     "telephone": "assets/bundled/prefabs/autospawn/phonebooth/phonebooth.static.prefab",
     "vending.machine": "assets/prefabs/deployable/vendingmachine/npcvendingmachine.prefab",
     "wall.frame.shopfront.metal": "assets/bundled/prefabs/static/wall.frame.shopfront.metal.static.prefab",
     "workbench1": "assets/bundled/prefabs/static/workbench1.static.prefab",
     "workbench2": "assets/bundled/prefabs/static/workbench2.static.prefab"
-  },
-  "StoreCustomVendingSetupSettingsInProfiles": false,
-  "PersistEntitiesAfterUnload": false
+  }
 }
 ```
 
 - `DebugDisplayDistance` -- Determines how far away you can see debug information about entities (i.e., when using `mashow`).
 - `DeployableOverrides` -- Determines which entity will be spawned when using `maspawn` if you don't specify the entity name in the command. For example, while you are holding an auto turret, running `maspawn` will spawn the `sentry.bandit.static` prefab instead of the `autoturret_deployed` prefab.
-- `StoreCustomVendingSetupSettingsInProfiles` (`true` or `false`) -- While `true`, vending machine settings for Custom Vending Setup will be stored within Monument Addons profiles data files rather than in Custom Vending Setup data files. This allows you to reposition vending machines without losing their settings. The default value is currently `false`, but in the future, this option will be removed and the behavior will be as if this option were set to `true`.
 - `PersistEntitiesAfterUnload` (`true` or `false`) -- While `true`, entities spawned by `maspawn` will remain after the plugin has unloaded, rather than being removed. Enabling persistence addresses several problems, such as player items getting deleted from recyclers and other containers when profiles are reloaded. Note: This option currently has no effect on Pastes, Spawn Groups or Custom Addons, meaning that those will always be removed when the plugin unloads.
 
 ## Localization
