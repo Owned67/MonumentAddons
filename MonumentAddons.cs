@@ -29,7 +29,7 @@ using System.Text.RegularExpressions;
 
 namespace Oxide.Plugins
 {
-    [Info("Monument Addons", "WhiteThunder", "0.13.0")]
+    [Info("Monument Addons", "WhiteThunder", "0.13.1")]
     [Description("Allows adding entities, spawn points and more to monuments.")]
     internal class MonumentAddons : CovalencePlugin
     {
@@ -127,6 +127,8 @@ namespace Oxide.Plugins
             _pluginInstance = this;
             _pluginData = StoredData.Load(_profileStore);
             _profileStateData = ProfileStateData.Load(_pluginData);
+
+            _pluginConfig.Init();
 
             // Ensure the profile folder is created to avoid errors.
             _profileStore.EnsureDefaultProfile();
@@ -2890,6 +2892,10 @@ namespace Oxide.Plugins
 
         #region Helper Methods
 
+        public static void LogInfo(string message) => Interface.Oxide.LogInfo($"[Monument Addons] {message}");
+        public static void LogError(string message) => Interface.Oxide.LogError($"[Monument Addons] {message}");
+        public static void LogWarning(string message) => Interface.Oxide.LogWarning($"[Monument Addons] {message}");
+
         private static bool TryRaycast(BasePlayer player, out RaycastHit hit, float maxDistance = MaxRaycastDistance)
         {
             return Physics.Raycast(player.eyes.HeadRay(), out hit, maxDistance, HitLayers, QueryTriggerInteraction.Ignore);
@@ -3127,9 +3133,9 @@ namespace Oxide.Plugins
             return mask;
         }
 
-        private static BaseEntity FindValidEntity(uint entityId)
+        private static BaseEntity FindValidEntity(ulong entityId)
         {
-            var entity = BaseNetworkable.serverEntities.Find(entityId) as BaseEntity;
+            var entity = BaseNetworkable.serverEntities.Find(new NetworkableId(entityId)) as BaseEntity;
             return entity != null && !entity.IsDestroyed
                 ? entity
                 : null;
@@ -4678,14 +4684,14 @@ namespace Oxide.Plugins
             public BaseEntity RootEntity { get; private set; }
             public bool IsMobile { get; private set; }
             public override bool IsValid => base.IsValid && !RootEntity.IsDestroyed;
-            public uint EntityId { get; private set; }
+            public NetworkableId EntityId { get; private set; }
 
             protected OBB BoundingBox => RootEntity.WorldSpaceBounds();
 
             public DynamicMonument(BaseEntity entity, bool isMobile) : base(entity)
             {
                 RootEntity = entity;
-                EntityId = entity.net?.ID ?? 0;
+                EntityId = entity.net?.ID ?? new NetworkableId();
                 IsMobile = isMobile;
             }
 
@@ -4734,7 +4740,7 @@ namespace Oxide.Plugins
             public static MonumentEntityComponent GetForEntity(BaseEntity entity) =>
                 entity.GetComponent<MonumentEntityComponent>();
 
-            public static MonumentEntityComponent GetForEntity(uint id) =>
+            public static MonumentEntityComponent GetForEntity(NetworkableId id) =>
                 BaseNetworkable.serverEntities.Find(id)?.GetComponent<MonumentEntityComponent>();
 
             public IEntityAdapter Adapter;
@@ -5566,11 +5572,12 @@ namespace Oxide.Plugins
                 var computerStation = Entity as ComputerStation;
                 if (computerStation != null && computerStation.isStatic)
                 {
+                    var computerStation2 = computerStation;
                     computerStation.CancelInvoke(computerStation.GatherStaticCameras);
                     computerStation.Invoke(() =>
                     {
                         PluginInstance.TrackStart();
-                        GatherStaticCameras(computerStation);
+                        GatherStaticCameras(computerStation2);
                         PluginInstance.TrackEnd();
                     }, 1);
                 }
@@ -5587,10 +5594,11 @@ namespace Oxide.Plugins
                 var vehicleSpawner = Entity as VehicleSpawner;
                 if (vehicleSpawner != null)
                 {
+                    var vehicleSpawner2 = vehicleSpawner;
                     vehicleSpawner.Invoke(() =>
                     {
                         PluginInstance.TrackStart();
-                        EntityUtils.ConnectNearbyVehicleVendor(vehicleSpawner);
+                        EntityUtils.ConnectNearbyVehicleVendor(vehicleSpawner2);
                         PluginInstance.TrackEnd();
                     }, 1);
                 }
@@ -5598,11 +5606,12 @@ namespace Oxide.Plugins
                 var vehicleVendor = Entity as VehicleVendor;
                 if (vehicleVendor != null)
                 {
-                    // Use a slightly longer delay than the vendor check check since this can short-circuit as an optimization.
+                    // Use a slightly longer delay than the vendor check since this can short-circuit as an optimization.
+                    var vehicleVendor2 = vehicleVendor;
                     vehicleVendor.Invoke(() =>
                     {
                         PluginInstance.TrackStart();
-                        EntityUtils.ConnectNearbyVehicleSpawner(vehicleVendor);
+                        EntityUtils.ConnectNearbyVehicleSpawner(vehicleVendor2);
                         PluginInstance.TrackEnd();
                     }, 2);
                 }
@@ -5620,13 +5629,14 @@ namespace Oxide.Plugins
                 var fogMachine = Entity as FogMachine;
                 if (fogMachine != null)
                 {
+                    var fogMachine2 = fogMachine;
                     fogMachine.SetFlag(BaseEntity.Flags.On, true);
                     fogMachine.InvokeRepeating(() =>
                     {
-                        fogMachine.SetFlag(FogMachine.Emitting, true);
-                        fogMachine.Invoke(fogMachine.EnableFogField, 1f);
-                        fogMachine.Invoke(fogMachine.DisableNozzle, fogMachine.nozzleBlastDuration);
-                        fogMachine.Invoke(fogMachine.FinishFogging, fogMachine.fogLength);
+                        fogMachine2.SetFlag(FogMachine.Emitting, true);
+                        fogMachine2.Invoke(fogMachine2.EnableFogField, 1f);
+                        fogMachine2.Invoke(fogMachine2.DisableNozzle, fogMachine2.nozzleBlastDuration);
+                        fogMachine2.Invoke(fogMachine2.FinishFogging, fogMachine2.fogLength);
                     },
                     UnityEngine.Random.Range(0f, 5f),
                     fogMachine.fogLength - 1);
@@ -5669,10 +5679,11 @@ namespace Oxide.Plugins
                 var doorManipulator = Entity as DoorManipulator;
                 if (doorManipulator != null && doorManipulator.targetDoor == null)
                 {
+                    var doorManipulator2 = doorManipulator;
                     doorManipulator.Invoke(() =>
                     {
                         PluginInstance.TrackStart();
-                        EntityUtils.ConnectNearbyDoor(doorManipulator);
+                        EntityUtils.ConnectNearbyDoor(doorManipulator2);
                         PluginInstance.TrackEnd();
                     }, 1);
                 }
@@ -5681,13 +5692,52 @@ namespace Oxide.Plugins
                 if (spray != null)
                 {
                     spray.CancelInvoke(spray.RainCheck);
+                    #if !CARBON
                     spray.splashThreshold = int.MaxValue;
+                    #endif
                 }
 
                 var telephone = Entity as Telephone;
                 if (telephone != null && telephone.prefabID == 1009655496)
                 {
                     PhoneUtils.NameTelephone(telephone, Monument, Position, PluginInstance._monumentHelper);
+                }
+
+                var microphoneStand = Entity as MicrophoneStand;
+                if ((object)microphoneStand != null)
+                {
+                    var microphoneStand2 = microphoneStand;
+                    microphoneStand.Invoke(() =>
+                    {
+                        PluginInstance.TrackStart();
+                        microphoneStand2.PostMapEntitySpawn();
+                        PluginInstance.TrackEnd();
+                    }, 1);
+                }
+
+                var storageContainer = Entity as StorageContainer;
+                if ((object)storageContainer != null)
+                {
+                    storageContainer.isLockable = false;
+                    storageContainer.isMonitorable = false;
+                }
+
+                var christmasTree = Entity as ChristmasTree;
+                if ((object)christmasTree != null)
+                {
+                    foreach (var itemShortName in _pluginConfig.XmasTreeDecorations)
+                    {
+                        var item = ItemManager.CreateByName(itemShortName);
+                        if (item == null)
+                            continue;
+
+                        if (!item.MoveToContainer(christmasTree.inventory))
+                        {
+                            item.Remove();
+                        }
+                    }
+
+                    christmasTree.inventory.SetLocked(true);
                 }
 
                 if (EntityData.Scale != 1 || Entity.GetParentEntity() is SphereEntity)
@@ -9728,31 +9778,31 @@ namespace Oxide.Plugins
         private class MonumentState : IDeepCollection
         {
             [JsonProperty("Entities")]
-            public Dictionary<Guid, uint> Entities = new Dictionary<Guid, uint>();
+            public Dictionary<Guid, ulong> Entities = new Dictionary<Guid, ulong>();
 
             public bool HasItems() => Entities.Count > 0;
 
-            public bool HasEntity(Guid guid, uint entityId)
+            public bool HasEntity(Guid guid, NetworkableId entityId)
             {
-                return Entities.GetOrDefault(guid) == entityId;
+                return Entities.GetOrDefault(guid) == entityId.Value;
             }
 
             public BaseEntity FindEntity(Guid guid)
             {
-                uint entityId;
+                ulong entityId;
                 if (!Entities.TryGetValue(guid, out entityId))
                     return null;
 
-                var entity = BaseNetworkable.serverEntities.Find(entityId) as BaseEntity;
+                var entity = BaseNetworkable.serverEntities.Find(new NetworkableId(entityId)) as BaseEntity;
                 if (entity == null || entity.IsDestroyed)
                     return null;
 
                 return entity;
             }
 
-            public void AddEntity(Guid guid, uint entityId)
+            public void AddEntity(Guid guid, NetworkableId entityId)
             {
-                Entities[guid] = entityId;
+                Entities[guid] = entityId.Value;
             }
 
             public bool RemoveEntity(Guid guid)
@@ -9828,7 +9878,7 @@ namespace Oxide.Plugins
             public bool ShouldSerializeByLocation() => HasDeepItems(ByLocation);
 
             [JsonProperty("ByEntity")]
-            private Dictionary<uint, MonumentState> ByEntity = new Dictionary<uint, MonumentState>();
+            private Dictionary<ulong, MonumentState> ByEntity = new Dictionary<ulong, MonumentState>();
 
             public bool ShouldSerializeByEntity() => HasDeepItems(ByEntity);
 
@@ -9891,7 +9941,7 @@ namespace Oxide.Plugins
                 var dynamicMonument = monument as DynamicMonument;
                 if (dynamicMonument != null)
                 {
-                    return ByEntity.GetOrDefault(dynamicMonument.EntityId);
+                    return ByEntity.GetOrDefault(dynamicMonument.EntityId.Value);
                 }
 
                 return ByLocation.GetOrDefault(monument.Position);
@@ -9902,7 +9952,7 @@ namespace Oxide.Plugins
                 var dynamicMonument = monument as DynamicMonument;
                 if (dynamicMonument != null)
                 {
-                    return ByEntity.GetOrCreate(dynamicMonument.EntityId);
+                    return ByEntity.GetOrCreate(dynamicMonument.EntityId.Value);
                 }
 
                 return ByLocation.GetOrCreate(monument.Position);
@@ -9978,7 +10028,7 @@ namespace Oxide.Plugins
                 return ProfileStateMap.GetOrDefault(profileName);
             }
 
-            public bool HasEntity(string profileName, BaseMonument monument, Guid guid, uint entityId)
+            public bool HasEntity(string profileName, BaseMonument monument, Guid guid, NetworkableId entityId)
             {
                 return GetProfileState(profileName)
                     ?.GetOrDefault(monument.AliasOrShortName)
@@ -9994,7 +10044,7 @@ namespace Oxide.Plugins
                     ?.FindEntity(guid);
             }
 
-            public void AddEntity(string profileName, BaseMonument monument, Guid guid, uint entityId)
+            public void AddEntity(string profileName, BaseMonument monument, Guid guid, NetworkableId entityId)
             {
                 ProfileStateMap.GetOrCreate(profileName)
                     .GetOrCreate(monument.AliasOrShortName)
@@ -10264,17 +10314,30 @@ namespace Oxide.Plugins
             [JsonProperty("Debug", DefaultValueHandling = DefaultValueHandling.Ignore)]
             public bool Debug = false;
 
-            [JsonProperty("DebugDisplayDistance")]
-            public float DebugDisplayDistance = 150;
+            [JsonProperty("EnableDynamicMonuments")]
+            [DefaultValue(true)]
+            private bool DeprecatedEnableDynamicMonuments { set { EnableDynamicMonuments = value; } }
 
-            [JsonProperty("EnableDynamicMonuments", DefaultValueHandling = DefaultValueHandling.Ignore)]
+            [JsonProperty("Enable dynamic monuments", DefaultValueHandling = DefaultValueHandling.Ignore)]
             [DefaultValue(true)]
             public bool EnableDynamicMonuments = true;
 
+            [JsonProperty("DebugDisplayDistance")]
+            private float DeprecatedDebugDisplayDistance { set { DebugDisplayDistance = value; } }
+
+            [JsonProperty("Debug display distance")]
+            public float DebugDisplayDistance = 150;
+
             [JsonProperty("PersistEntitiesAfterUnload")]
+            private bool DeprecatedEnableEntitySaving { set { EnableEntitySaving = value; } }
+
+            [JsonProperty("Persist entities while the plugin is unloaded")]
             public bool EnableEntitySaving = false;
 
             [JsonProperty("DeployableOverrides")]
+            public Dictionary<string, string> DeprecatedDeployableOverrides { set { DeployableOverrides = value; } }
+
+            [JsonProperty("Deployable overrides")]
             public Dictionary<string, string> DeployableOverrides = new Dictionary<string, string>
             {
                 ["arcade.machine.chippy"] = "assets/bundled/prefabs/static/chippyarcademachine.static.prefab",
@@ -10298,6 +10361,40 @@ namespace Oxide.Plugins
                 ["workbench1"] = "assets/bundled/prefabs/static/workbench1.static.prefab",
                 ["workbench2"] = "assets/bundled/prefabs/static/workbench2.static.prefab",
             };
+
+            [JsonProperty("Xmas tree decorations (item shortnames)")]
+            public string[] XmasTreeDecorations = new string[]
+            {
+                "xmas.decoration.baubels",
+                "xmas.decoration.candycanes",
+                "xmas.decoration.gingerbreadmen",
+                "xmas.decoration.lights",
+                "xmas.decoration.pinecone",
+                "xmas.decoration.star",
+                "xmas.decoration.tinsel",
+            };
+
+            public void Init()
+            {
+                if (XmasTreeDecorations != null)
+                {
+                    foreach (var itemShortName in XmasTreeDecorations)
+                    {
+                        var itemDefinition = ItemManager.FindItemDefinition(itemShortName);
+                        if (itemDefinition == null)
+                        {
+                            LogError(($"Invalid item short name in config: {itemShortName}"));
+                            continue;
+                        }
+
+                        if (itemDefinition.GetComponent<ItemModXMasTreeDecoration>() == null)
+                        {
+                            LogError(($"Item is not an Xmas tree decoration: {itemShortName}"));
+                            continue;
+                        }
+                    }
+                }
+            }
         }
 
         private Configuration GetDefaultConfig() => new Configuration();
